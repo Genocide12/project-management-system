@@ -1,0 +1,74 @@
+files:
+  - path: .github/workflows/chunks.yml
+    content: |
+      name: Apply Code Chunks
+
+      on:
+        push:
+          paths:
+            - 'tasks/chunk_*.yml'
+            - 'tasks/fix_*.yml'
+
+      jobs:
+        apply:
+          runs-on: ubuntu-latest
+          permissions:
+            contents: write
+          steps:
+            - uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                python-version: '3.11'
+            - name: Install PyYAML
+              run: pip install PyYAML
+            - name: Apply chunk
+              run: |
+                python3 << 'PYTHON_SCRIPT'
+                import os, yaml, base64, json
+                from pathlib import Path
+                
+                # Find task files
+                task_files = []
+                tasks_dir = Path("tasks")
+                if tasks_dir.exists():
+                    task_files.extend(tasks_dir.glob("chunk_*.yml"))
+                    task_files.extend(tasks_dir.glob("fix_*.yml"))
+                
+                if not task_files:
+                    print("No task files found")
+                    exit(0)
+                
+                # Process latest task file
+                task = sorted(task_files)[-1]
+                print(f"Processing {task}")
+                
+                data = yaml.safe_load(task.read_text(encoding='utf-8'))
+                files = data.get("files", [])
+                
+                for item in files:
+                    path = Path(item["path"])
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    content = item["content"]
+                    if "encoding" in item and item["encoding"] == "base64":
+                        content = base64.b64decode(content).decode("utf-8")
+                    path.write_text(content, encoding="utf-8")
+                    print(f"Updated {path}")
+                
+                print(f"Applied {len(files)} files from {task.name}")
+                PYTHON_SCRIPT
+            - name: Commit changes
+              run: |
+                git config user.name "github-actions[bot]"
+                git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                git add -A
+                
+                # Check if there are changes to commit
+                if git diff --cached --quiet; then
+                  echo "No changes to commit."
+                else
+                  echo "Committing changes..."
+                  git commit -m "Apply code chunk automatically"
+                  git push
+                  echo "Changes pushed successfully."
+                fi
