@@ -51,11 +51,6 @@
 - Import/Export functionality
 - Data encryption and security
 
-## Screenshots / Скриншоты
-
-*Screenshots will be added as development progresses*
-*Скриншоты будут добавлены по мере развития проекта*
-
 ## Installation / Установка
 
 ### Prerequisites / Предварительные требования
@@ -86,7 +81,6 @@ project-management-system/
 ├── requirements.txt        # Dependencies / Зависимости
 ├── README.md              # This file / Этот файл
 ├── LICENSE                # License file / Файл лицензии
-├── config/                # Configuration files / Файлы конфигурации
 ├── app/                   # Main application code / Основной код приложения
 │   ├── core/             # Core application logic / Основная логика
 │   ├── ui/               # User interface modules / Модули интерфейса
@@ -161,15 +155,6 @@ The system supports both SQLite (default) and PostgreSQL databases:
 - Supports multiple concurrent users
 - Better performance for large datasets
 
-## Features in Development / Возможности в разработке
-
-- [ ] REST API for external integrations
-- [ ] Mobile application companion
-- [ ] Advanced reporting dashboards
-- [ ] Integration with popular tools (Slack, Trello, etc.)
-- [ ] Plugin system for extensibility
-- [ ] Cloud synchronization
-
 ## Contributing / Участие в разработке
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -199,12 +184,6 @@ If you have any questions or need help, please:
 - Database integration
 - Reporting system
 
-## Acknowledgments / Благодарности
-
-- PyQt6 community for excellent documentation
-- Contributors and testers
-- Open source libraries used in this project
-
 ---
 
 **Made with ❤️ by Genocide12**
@@ -212,3 +191,13 @@ If you have any questions or need help, please:
 *This project is actively developed and maintained. Star ⭐ the repository if you find it useful!*
 
 *Этот проект активно разрабатывается и поддерживается. Поставьте звезду ⭐ репозиторию, если он оказался полезным!*
+
+## Quick Start / Быстрый старт
+
+```bash
+# Install dependencies / Установить зависимости
+pip install -r requirements.txt
+
+# Run application / Запустить приложение
+python main.py
+```

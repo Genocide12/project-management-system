@@ -1,0 +1,58 @@
+name: Apply Code Chunks
+
+on:
+  push:
+    paths:
+      - 'tasks/chunk_*.yml'
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PyYAML
+        run: pip install PyYAML
+      - name: Apply chunk
+        run: |
+          python - << 'PY'
+          import os, yaml, textwrap, base64, json
+          from pathlib import Path
+          task_files = [p for p in Path("tasks").glob("chunk_*.yml")]
+          if not task_files:
+              raise SystemExit(0)
+          # take the latest pushed chunk (highest name)
+          task = sorted(task_files)[-1]
+          data = yaml.safe_load(task.read_text(encoding='utf-8'))
+          files = data.get("files", [])
+          for item in files:
+              path = Path(item["path"])
+              path.parent.mkdir(parents=True, exist_ok=True)
+              content = item["content"]
+              if item.get("encoding") == "base64":
+                  content = base64.b64decode(content).decode("utf-8")
+              path.write_text(content, encoding="utf-8")
+          # optional deletions
+          for d in data.get("delete", []):
+              p = Path(d)
+              if p.exists():
+                  if p.is_file():
+                      p.unlink()
+          print(f"Applied chunk {task.name} with {len(files)} files.")
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            msg=$(ls -1 tasks/chunk_*.yml | tail -n1 | xargs -I{} bash -lc 'echo "Apply code chunk: {}"')
+            git commit -m "$msg"
+            git push

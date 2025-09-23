@@ -1,0 +1,133 @@
+files:
+  - path: ui/login_dialog.py
+    content: |
+      from PyQt6 import QtWidgets
+      class LoginDialog(QtWidgets.QDialog):
+          def __init__(self, parent=None):
+              super().__init__(parent)
+              self.setWindowTitle("Вход")
+              lay = QtWidgets.QFormLayout(self)
+              self.user = QtWidgets.QLineEdit()
+              self.pwd = QtWidgets.QLineEdit()
+              self.pwd.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+              btns = QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+              self.bb = QtWidgets.QDialogButtonBox(btns)
+              self.bb.accepted.connect(self.accept)
+              self.bb.rejected.connect(self.reject)
+              lay.addRow("Пользователь", self.user)
+              lay.addRow("Пароль", self.pwd)
+              lay.addRow(self.bb)
+
+  - path: ui/project_view.py
+    content: |
+      from PyQt6 import QtWidgets
+      class ProjectView(QtWidgets.QWidget):
+          def __init__(self, app):
+              super().__init__()
+              self.app = app
+              lay = QtWidgets.QVBoxLayout(self)
+              self.table = QtWidgets.QTableWidget(0, 2)
+              self.table.setHorizontalHeaderLabels(["Проект","Описание"])
+              lay.addWidget(self.table)
+
+  - path: ui/task_view.py
+    content: |
+      from PyQt6 import QtWidgets
+      class TaskView(QtWidgets.QWidget):
+          def __init__(self, app):
+              super().__init__()
+              self.app = app
+              lay = QtWidgets.QVBoxLayout(self)
+              self.table = QtWidgets.QTableWidget(0, 3)
+              self.table.setHorizontalHeaderLabels(["Задача","Статус","Проект"])
+              lay.addWidget(self.table)
+
+  - path: ui/calendar_view.py
+    content: |
+      from PyQt6 import QtWidgets
+      class CalendarView(QtWidgets.QWidget):
+          def __init__(self, app):
+              super().__init__()
+              lay = QtWidgets.QVBoxLayout(self)
+              self.calendar = QtWidgets.QCalendarWidget()
+              lay.addWidget(self.calendar)
+
+  - path: ui/report_view.py
+    content: |
+      from PyQt6 import QtWidgets
+      class ReportView(QtWidgets.QWidget):
+          def __init__(self, app):
+              super().__init__()
+              lay = QtWidgets.QVBoxLayout(self)
+              self.text = QtWidgets.QPlainTextEdit()
+              self.text.setReadOnly(True)
+              self.text.setPlainText("Отчеты появятся позже")
+              lay.addWidget(self.text)
+
+  - path: ui/components/toast.py
+    content: |
+      from PyQt6 import QtWidgets, QtCore
+      class Toast(QtWidgets.QLabel):
+          def __init__(self, text, parent=None, msec=2000):
+              super().__init__(text, parent, flags=QtCore.Qt.WindowType.ToolTip)
+              QtCore.QTimer.singleShot(msec, self.close)
+
+  - path: app/services/auth.py
+    content: |
+      from sqlalchemy import select
+      from app.models.user import User
+      from werkzeug.security import check_password_hash
+      class AuthService:
+          def __init__(self, db):
+              self.db = db
+          def login(self, username, password):
+              with self.db.session() as s:
+                  u = s.execute(select(User).where(User.username==username)).scalar_one_or_none()
+                  if not u: return None
+                  return u if check_password_hash(u.password_hash, password) else None
+
+  - path: app/services/projects.py
+    content: |
+      from sqlalchemy import select
+      from app.models.project import Project
+      class ProjectService:
+          def __init__(self, db):
+              self.db = db
+          def list(self):
+              with self.db.session() as s:
+                  return s.execute(select(Project)).scalars().all()
+
+  - path: app/services/tasks.py
+    content: |
+      from sqlalchemy import select
+      from app.models.task import Task
+      class TaskService:
+          def __init__(self, db):
+              self.db = db
+          def list(self):
+              with self.db.session() as s:
+                  return s.execute(select(Task)).scalars().all()
+
+  - path: ui/main_window.py
+    content: |
+      from PyQt6 import QtWidgets
+      from ui.project_view import ProjectView
+      from ui.task_view import TaskView
+      from ui.calendar_view import CalendarView
+      from ui.report_view import ReportView
+      class MainWindow(QtWidgets.QMainWindow):
+          def __init__(self, app):
+              super().__init__()
+              self.app = app
+              self.setWindowTitle('Project Management System')
+              self.resize(1100, 720)
+              self.tabs = QtWidgets.QTabWidget()
+              self.setCentralWidget(self.tabs)
+              self.projects = ProjectView(app)
+              self.tasks = TaskView(app)
+              self.calendar = CalendarView(app)
+              self.reports = ReportView(app)
+              self.tabs.addTab(self.projects, "Проекты")
+              self.tabs.addTab(self.tasks, "Задачи")
+              self.tabs.addTab(self.calendar, "Календарь")
+              self.tabs.addTab(self.reports, "Отчеты")
