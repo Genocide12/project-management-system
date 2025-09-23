@@ -1,0 +1,98 @@
+files:
+  - path: requirements.txt
+    content: |
+# Project Management System Requirements
+# Требования для системы управления проектами
+
+# Core GUI Framework
+PyQt6>=6.5.0
+
+# Database
+SQLAlchemy>=2.0.0
+alembic>=1.12.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+openpyxl>=3.1.0
+
+# Visualization and Reporting
+matplotlib>=3.7.0
+reportlab>=4.0.0
+
+# Date and Time
+python-dateutil>=2.8.0
+
+# Networking and API
+requests>=2.31.0
+
+# File Processing
+Pillow>=10.0.0
+
+# Encryption and Security
+cryptography>=41.0.0
+werkzeug>=3.0.0
+
+# Configuration and Settings
+PyYAML>=6.0.0
+pydantic>=2.0.0
+
+# Task Scheduling
+APScheduler>=3.10.0
+
+# Additional Utilities
+click>=8.1.0
+rich>=13.5.0
+tqdm>=4.66.0
+colorama>=0.4.6
+
+  - path: .github/workflows/chunks.yml
+    content: |
+      name: Apply Code Chunks
+
+      on:
+        push:
+          paths:
+            - 'tasks/chunk_*.yml'
+            - 'tasks/fix_*.yml'
+
+      jobs:
+        apply:
+          runs-on: ubuntu-latest
+          permissions:
+            contents: write
+          steps:
+            - uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                python-version: '3.11'
+            - name: Install PyYAML
+              run: pip install PyYAML
+            - name: Apply chunk
+              run: |
+                python - << 'EOF'
+                import os, yaml, base64, json
+                from pathlib import Path
+                task_files = [p for p in Path("tasks").glob("chunk_*.yml")] + [p for p in Path("tasks").glob("fix_*.yml")]
+                if not task_files:
+                    exit(0)
+                task = sorted(task_files)[-1]
+                data = yaml.safe_load(task.read_text(encoding='utf-8'))
+                files = data.get("files", [])
+                for item in files:
+                    path = Path(item["path"])
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    content = item["content"]
+                    path.write_text(content, encoding="utf-8")
+                print(f"Applied {len(files)} files from {task.name}")
+                EOF
+            - name: Commit changes
+              run: |
+                git config user.name "github-actions[bot]"
+                git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                git add -A
+                if ! git diff --cached --quiet; then
+                  git commit -m "Apply code chunk automatically"
+                  git push
+                fi
