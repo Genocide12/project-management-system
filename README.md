@@ -201,3 +201,5 @@ pip install -r requirements.txt
 # Run application / Запустить приложение
 python main.py
 ```
+
+Run: pip install -r requirements.txt && python main.py
