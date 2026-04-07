@@ -32,7 +32,7 @@ from alembic.runtime.migration import MigrationContext
 from alembic.operations import Operations
 
 # Import models after they are defined
-from app.database.models import Base
+from app.database.models import Base  # noqa: F401
 from app.core.config import ConfigManager
 
 
