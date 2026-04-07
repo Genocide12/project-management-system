@@ -7,81 +7,76 @@ Project Management System - Main Entry Point
 Author: Genocide12
 Version: 1.0.0
 Date: 2025
-
-This is the main entry point for the Project Management System.
-Это главная точка входа в систему управления проектами.
 """
 
 import sys
-import os
 import logging
 import traceback
 from pathlib import Path
-from PyQt6.QtWidgets import QApplication, QMessageBox, QSplashScreen
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
-from PyQt6.QtGui import QPixmap, QFont, QIcon
 
-# Add project root to Python path
-project_root = Path(__file__).parent.absolute()
-sys.path.insert(0, str(project_root))
+from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtCore import Qt
 
-# Import application modules
-try:
-    from app.core.application import ProjectManagerApp
-    from app.core.config import Config, ConfigManager
-    from app.core.logger import setup_logging
-    from app.database.connection import DatabaseManager
-    from app.utils.system_check import SystemChecker
-    from app.utils.splash import SplashScreenManager
-except ImportError as e:
-    print(f"Critical import error: {e}")
-    print("Please ensure all required dependencies are installed.")
-    sys.exit(1)
+from app.core.config import ConfigManager
+from app.core.logging import setup_logging
+from app.database.manager import DatabaseManager
+from app.ui.main_window import MainWindow
 
 
-def main():
+def _configure_logging(config: dict) -> None:
+    """Configure application logging."""
+    try:
+        setup_logging(config)
+    except Exception as e:
+        print(f"Warning: Failed to setup logging: {e}")
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+
+
+def _initialize_database(config_manager: ConfigManager) -> DatabaseManager:
+    """Initialize database connection."""
+    db_manager = DatabaseManager(config_manager)
+    db_manager.initialize()
+    return db_manager
+
+
+def main() -> int:
     """
-    Application main function
-    Главная функция приложения
+    Application main function.
+    Главная функция приложения.
     """
-    # Check Python version
     if sys.version_info < (3, 8):
         print("Error: Python 3.8 or higher is required.")
-        print("Ошибка: Требуется Python 3.8 или выше.")
-        sys.exit(1)
+        return 1
 
-    # Create QApplication
     app = QApplication(sys.argv)
-
-    # Set application properties
     app.setApplicationName("Project Management System")
     app.setApplicationVersion("1.0.0")
     app.setOrganizationName("Genocide12")
 
+    config_manager = None
+    db_manager = None
+
     try:
-        # Initialize configuration
         config_manager = ConfigManager()
         config_manager.load_config()
+        config = config_manager.get_config()
 
-        # Setup logging
-        setup_logging(config_manager.get_config())
+        _configure_logging(config)
 
-        # Initialize database
-        db_manager = DatabaseManager(config_manager)
-        db_manager.initialize()
+        db_manager = _initialize_database(config_manager)
 
-        # Create main application
-        main_app = ProjectManagerApp(config_manager, db_manager)
-        main_app.show()
+        window = MainWindow(config_manager, db_manager)
+        window.show()
 
-        # Run application
         return app.exec()
 
     except Exception as e:
-        logging.error(f"Critical error during application startup: {str(e)}")
+        logging.error(f"Critical error during startup: {e}")
         logging.error(traceback.format_exc())
 
-        # Show error dialog
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Icon.Critical)
         msg_box.setWindowTitle("Критическая ошибка")
@@ -92,7 +87,10 @@ def main():
 
         return 1
 
+    finally:
+        if db_manager:
+            db_manager.close()
+
 
 if __name__ == "__main__":
-    exit_code = main()
-    sys.exit(exit_code)
+    sys.exit(main())
